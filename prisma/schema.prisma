@@ -1,0 +1,121 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Priority {
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+enum NotificationType {
+  ASSIGNED
+  DUE_TODAY
+  DUE_SOON
+  OVERDUE
+  MISSING_FIELDS
+  STATUS_CHANGE
+}
+
+enum NotificationSeverity {
+  HIGH
+  MEDIUM
+  LOW
+  INFO
+}
+
+model User {
+  id            String   @id @default(cuid())
+  jiraAccountId String   @unique
+  displayName   String
+  email         String
+  jiraSite      String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  issuesAssigned  JiraIssue[]              @relation("AssignedIssues")
+  issuesReported  JiraIssue[]              @relation("ReportedIssues")
+  notifications   Notification[]
+  syncState       SyncState?
+  preferences     NotificationPreference?
+}
+
+model JiraIssue {
+  id                  String       @id @default(cuid())
+  jiraId              String       @unique
+  issueKey            String       @unique
+  projectKey          String
+  summary             String
+  description         String?
+  status              String
+  statusCategory      String       // TODO, IN_PROGRESS, DONE
+  priority            String
+  assigneeId          String?
+  reporterId          String?
+  startDate           DateTime?
+  dueDate             DateTime?
+  labels              String[]     @default([])
+  storyPoints         Float?
+  sprint              String?
+  acceptanceCriteria  String?
+  jiraUrl             String
+  updatedAt           DateTime
+  syncedAt            DateTime     @default(now())
+
+  assignee            User?        @relation("AssignedIssues", fields: [assigneeId], references: [jiraAccountId])
+  reporter            User?        @relation("ReportedIssues", fields: [reporterId], references: [jiraAccountId])
+  notifications       Notification[]
+
+  @@index([assigneeId])
+  @@index([reporterId])
+  @@index([dueDate])
+  @@index([statusCategory])
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  issueId   String
+  type      NotificationType
+  severity  NotificationSeverity
+  title     String
+  message   String
+  eventKey  String               @unique // e.g., "userId:issueId:OVERDUE:2026-09-02"
+  readAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  issue     JiraIssue            @relation(fields: [issueId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+model SyncState {
+  id            String    @id @default(cuid())
+  userId        String    @unique
+  lastSyncAt    DateTime?
+  lastSuccessAt DateTime?
+  lastError     String?
+  issueCount    Int       @default(0)
+
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationPreference {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  dueSoonDays    Int      @default(3)
+  requiredFields String[] @default(["description", "assignee", "startDate", "dueDate", "labels", "storyPoints", "priority", "sprint", "acceptanceCriteria"])
+  quietHours     Boolean  @default(false)
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
