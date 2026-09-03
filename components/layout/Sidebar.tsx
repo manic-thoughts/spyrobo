@@ -21,6 +21,7 @@ import {
   Info
 } from 'lucide-react';
 import LogoutModal from './LogoutModal';
+import { getCachedAuthUser, clearAuthUserCache } from '@/lib/auth/client-auth';
 
 export default function Sidebar({
   activeProject,
@@ -40,8 +41,7 @@ export default function Sidebar({
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => res.json())
+    getCachedAuthUser()
       .then((data) => {
         if (data?.authenticated && data?.user && data?.user?.isVerified) {
           setCurrentUser(data.user);
@@ -72,6 +72,7 @@ export default function Sidebar({
   const handleLogoutConfirm = async () => {
     setLoggingOut(true);
     try {
+      clearAuthUserCache();
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/auth/login';
     } catch (err) {
