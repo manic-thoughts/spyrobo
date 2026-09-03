@@ -11,6 +11,17 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   display: 'swap',
 });
 
+const getAppUrl = (): URL => {
+  const envUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const cleanUrl = envUrl.replace(/^["']|["']$/g, '').trim();
+  const validUrl = cleanUrl.startsWith('http') ? cleanUrl : `https://${cleanUrl}`;
+  try {
+    return new URL(validUrl);
+  } catch (e) {
+    return new URL('http://localhost:3000');
+  }
+};
+
 export const metadata: Metadata = {
   title: {
     default: 'SPYROBO — Workflow Attention Tool',
@@ -28,7 +39,7 @@ export const metadata: Metadata = {
     'SPYROBO',
   ],
   authors: [{ name: 'SPYROBO Team' }],
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  metadataBase: getAppUrl(),
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
