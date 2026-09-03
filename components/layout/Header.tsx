@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { RefreshCw, LogOut, UserCheck, Menu } from 'lucide-react';
+import { LogOut, UserCheck, Menu, LogIn } from 'lucide-react';
 import LogoutModal from './LogoutModal';
 
 interface HeaderProps {
@@ -18,9 +18,29 @@ interface HeaderProps {
   onMobileMenuToggle?: () => void;
 }
 
-export default function Header({ user, isMockMode, onMobileMenuToggle }: HeaderProps) {
+export default function Header({ user: initialUser, isMockMode, onMobileMenuToggle }: HeaderProps) {
+  const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  useEffect(() => {
+    if (initialUser && initialUser.email) {
+      setCurrentUser(initialUser);
+      return;
+    }
+
+    // Fetch live auth status if user prop was not provided directly
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.authenticated && data?.user && data?.user?.isVerified) {
+          setCurrentUser(data.user);
+        } else {
+          setCurrentUser(null);
+        }
+      })
+      .catch(() => setCurrentUser(null));
+  }, [initialUser]);
 
   const handleLogoutConfirm = async () => {
     setLoggingOut(true);
@@ -34,6 +54,8 @@ export default function Header({ user, isMockMode, onMobileMenuToggle }: HeaderP
       setShowLogoutModal(false);
     }
   };
+
+  const isLoggedIn = Boolean(currentUser && currentUser.isVerified);
 
   return (
     <>
@@ -57,33 +79,39 @@ export default function Header({ user, isMockMode, onMobileMenuToggle }: HeaderP
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
-          {/* User Identity & Auth Button */}
-          {user?.email ? (
+          {/* User Identity & Logout - Displayed ONLY when authenticated */}
+          {isLoggedIn ? (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8.5 h-8.5 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs text-white shadow-xs shrink-0">
-                {user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                {currentUser.displayName
+                  ? currentUser.displayName.charAt(0).toUpperCase()
+                  : currentUser.email.charAt(0).toUpperCase()}
               </div>
               <div className="text-left hidden md:block max-w-[160px] truncate">
                 <div className="flex items-center gap-1.5 truncate">
-                  <p className="text-xs font-bold text-slate-900 truncate">{user.displayName || 'Verified User'}</p>
-                  {user.isVerified && <UserCheck className="w-3 h-3 text-emerald-600 shrink-0" />}
+                  <p className="text-xs font-bold text-slate-900 truncate">
+                    {currentUser.displayName || 'Verified User'}
+                  </p>
+                  <UserCheck className="w-3 h-3 text-emerald-600 shrink-0" />
                 </div>
-                <p className="text-[10px] text-slate-500 font-medium truncate">{user.email}</p>
+                <p className="text-[10px] text-slate-500 font-medium truncate">{currentUser.email}</p>
               </div>
               <button
                 onClick={() => setShowLogoutModal(true)}
                 title="Logout"
-                className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition shrink-0"
+                className="px-2.5 py-1.5 rounded-lg text-rose-600 bg-rose-50 hover:bg-rose-100 transition shrink-0 flex items-center gap-1.5 text-xs font-bold border border-rose-200/60"
               >
-                <LogOut className="w-4 h-4" />
+                <LogOut className="w-4 h-4 text-rose-600" />
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           ) : (
             <Link
               href="/auth/login"
-              className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition"
+              className="px-3.5 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white transition flex items-center gap-1.5 shadow-xs"
             >
-              Sign In
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
             </Link>
           )}
         </div>

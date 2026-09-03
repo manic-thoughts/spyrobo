@@ -68,12 +68,15 @@ export async function sendOtpEmail({ toEmail, otpCode }: SendOtpParams): Promise
       html: htmlContent,
     });
 
-    console.log(`[EmailService] OTP email successfully sent to ${toEmail} via Brevo SMTP!`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[EmailService] OTP email sent to ${toEmail}`);
+    }
     return true;
   } catch (err: any) {
-    console.error(`[EmailService] Failed to send email via Brevo SMTP:`, err.message);
-    // Dev fallback: output OTP code to server logs so user can proceed
-    console.log(`[EmailService Dev Fallback] OTP for ${toEmail} is: ${otpCode}`);
+    if (process.env.NODE_ENV !== 'production') {
+      console.error(`[EmailService] SMTP error:`, err.message);
+      console.log(`[EmailService Dev Fallback] OTP for ${toEmail} is: ${otpCode}`);
+    }
     return false;
   }
 }

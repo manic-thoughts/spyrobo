@@ -197,7 +197,9 @@ export class SyncService {
           },
         });
       } catch (dbError: any) {
-        console.warn('[SyncService] DB unavailable during sync, utilizing memory state mode:', dbError.message);
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[SyncService] DB fallback mode:', dbError.message);
+        }
       }
 
       return {
@@ -210,7 +212,9 @@ export class SyncService {
         syncedAt,
       };
     } catch (err: any) {
-      console.error('[SyncService] Sync failure:', err.message);
+      if (process.env.NODE_ENV !== 'production') {
+        console.error('[SyncService] Sync error:', err.message);
+      }
       return {
         success: false,
         jiraAccountId: customJiraAccountId || 'unknown',
