@@ -5,21 +5,19 @@ import { NotificationCandidate, RuleContext } from './types';
  * Triggers when the current user is assigned to an issue.
  */
 export function evaluateAssigned(ctx: RuleContext): NotificationCandidate | null {
-  const { issue, previousIssue, userId, jiraAccountId } = ctx;
+  const { issue, previousIssue, userId, jiraAccountId, userEmails } = ctx;
 
-  // Check if assigned to current user
-  if (issue.assigneeId !== jiraAccountId) return null;
+  const isAssignedToMe =
+    issue.assigneeId === jiraAccountId ||
+    (userEmails && issue.assigneeEmail && userEmails.includes(issue.assigneeEmail.toLowerCase()));
 
-  // If previous issue state exists, only trigger if assignee changed to current user
-  if (previousIssue && previousIssue.assigneeId === jiraAccountId) {
-    return null;
-  }
+  if (!isAssignedToMe) return null;
 
   return {
     type: 'ASSIGNED',
     severity: 'MEDIUM',
     title: `Assigned to ${issue.issueKey}`,
-    message: `You have been assigned to ${issue.issueKey} (${issue.summary}). Status: ${issue.status}.`,
+    message: `You are assigned to ${issue.issueKey} (${issue.summary}).`,
     eventKey: `${userId}:${issue.jiraId}:ASSIGNED:${jiraAccountId}`,
   };
 }

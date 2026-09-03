@@ -48,17 +48,23 @@ export interface NormalizedJiraIssue {
   projectKey: string;
   summary: string;
   description: string | null;
+  issueType: string;
   status: string;
   statusCategory: 'TODO' | 'IN_PROGRESS' | 'DONE';
   priority: string;
   assigneeId: string | null;
+  assigneeName: string | null;
+  assigneeEmail: string | null;
   reporterId: string | null;
+  reporterName: string | null;
+  reporterEmail: string | null;
   startDate: Date | null;
   dueDate: Date | null;
   labels: string[];
   storyPoints: number | null;
   sprint: string | null;
-  acceptanceCriteria: string | null;
+  originalEstimate: string | number | null;
+  acceptanceCriteria?: string | null;
   jiraUrl: string;
   updatedAt: Date;
 }

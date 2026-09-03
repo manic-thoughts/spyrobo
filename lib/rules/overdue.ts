@@ -6,8 +6,17 @@ import { NotificationCandidate, RuleContext } from './types';
  * MUST suppress overdue alerts for completed (DONE) tickets.
  */
 export function evaluateOverdue(ctx: RuleContext): NotificationCandidate | null {
-  const { issue, userId, referenceDate } = ctx;
+  const { issue, userId, jiraAccountId, userEmails, referenceDate } = ctx;
 
+  const isAssignedToMe =
+    issue.assigneeId === jiraAccountId ||
+    (userEmails && issue.assigneeEmail && userEmails.includes(issue.assigneeEmail.toLowerCase()));
+
+  const isReportedByMe =
+    issue.reporterId === jiraAccountId ||
+    (userEmails && issue.reporterEmail && userEmails.includes(issue.reporterEmail.toLowerCase()));
+
+  if (!isAssignedToMe && !isReportedByMe) return null;
   if (!issue.dueDate) return null;
   if (issue.statusCategory === 'DONE') return null; // Suppress completed issues
 

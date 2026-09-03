@@ -6,7 +6,8 @@ export type NotificationType =
   | 'DUE_SOON'
   | 'OVERDUE'
   | 'MISSING_FIELDS'
-  | 'STATUS_CHANGE';
+  | 'STATUS_CHANGE'
+  | 'COMMENT_ADDED';
 
 export type NotificationSeverity = 'HIGH' | 'MEDIUM' | 'LOW' | 'INFO';
 
@@ -15,6 +16,7 @@ export interface RuleContext {
   previousIssue?: NormalizedJiraIssue | null;
   userId: string;
   jiraAccountId: string;
+  userEmails?: string[];
   dueSoonDays?: number;
   requiredFields?: string[];
   referenceDate?: Date; // Allows passing fixed dates for unit testing

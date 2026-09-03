@@ -33,18 +33,54 @@ enum NotificationSeverity {
 
 model User {
   id            String   @id @default(cuid())
-  jiraAccountId String   @unique
-  displayName   String
-  email         String
-  jiraSite      String
+  email         String   @unique
+  displayName   String?
+  isVerified    Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  issuesAssigned  JiraIssue[]              @relation("AssignedIssues")
-  issuesReported  JiraIssue[]              @relation("ReportedIssues")
-  notifications   Notification[]
-  syncState       SyncState?
-  preferences     NotificationPreference?
+  // Jira Integration Identity Rectification
+  jiraAccountId String?  @unique
+  jiraEmail     String?
+  jiraSite      String?
+  jiraApiToken  String?
+
+  otpTokens     OtpToken[]
+  projects      JiraProject[]
+  issuesAssigned JiraIssue[]              @relation("AssignedIssues")
+  issuesReported JiraIssue[]              @relation("ReportedIssues")
+  notifications Notification[]
+  syncState     SyncState?
+  preferences   NotificationPreference?
+}
+
+model OtpToken {
+  id        String   @id @default(cuid())
+  userId    String
+  code      String   // 6-digit verification code
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, code])
+  @@index([expiresAt])
+  @@index([used])
+}
+
+model JiraProject {
+  id         String   @id @default(cuid())
+  userId     String
+  projectKey String   // e.g. "PROJ"
+  name       String   // e.g. "Payment Gateway API"
+  jiraSite   String
+  isSelected Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectKey])
 }
 
 model JiraIssue {
@@ -77,6 +113,7 @@ model JiraIssue {
   @@index([reporterId])
   @@index([dueDate])
   @@index([statusCategory])
+  @@index([projectKey])
 }
 
 model Notification {
@@ -87,7 +124,7 @@ model Notification {
   severity  NotificationSeverity
   title     String
   message   String
-  eventKey  String               @unique // e.g., "userId:issueId:OVERDUE:2026-09-02"
+  eventKey  String               @unique // e.g. "userId:issueId:OVERDUE:2026-09-02"
   readAt    DateTime?
   createdAt DateTime             @default(now())
 
@@ -96,7 +133,6 @@ model Notification {
 
   @@index([userId, readAt])
   @@index([userId, createdAt])
-  @@index([type])
 }
 
 model SyncState {
@@ -111,11 +147,11 @@ model SyncState {
 }
 
 model NotificationPreference {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  dueSoonDays    Int      @default(3)
-  requiredFields String[] @default(["description", "assignee", "startDate", "dueDate", "labels", "storyPoints", "priority", "sprint", "acceptanceCriteria"])
-  quietHours     Boolean  @default(false)
+  id             String    @id @default(cuid())
+  userId         String    @unique
+  dueSoonDays    Int       @default(3)
+  requiredFields String[]  @default(["description", "assignee", "startDate", "dueDate", "labels", "storyPoints", "priority", "sprint", "acceptanceCriteria"])
+  lastReadAllAt  DateTime?
 
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

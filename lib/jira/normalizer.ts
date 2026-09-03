@@ -78,11 +78,24 @@ export function normalizeJiraIssue(raw: JiraIssueRaw, jiraBaseUrl: string): Norm
     sprintName = fields.sprint;
   }
 
-  let acceptanceCriteria: string | null = null;
-  if (fields.customfield_10029) {
-    acceptanceCriteria = extractTextFromAdf(fields.customfield_10029);
-  } else if (fields.acceptanceCriteria) {
-    acceptanceCriteria = extractTextFromAdf(fields.acceptanceCriteria);
+  let originalEstimate: string | null = null;
+  if (fields.timetracking?.originalEstimate) {
+    originalEstimate = String(fields.timetracking.originalEstimate).trim();
+  } else if (typeof fields.timeoriginalestimate === 'number' && fields.timeoriginalestimate > 0) {
+    const totalSecs = fields.timeoriginalestimate;
+    const hours = Math.floor(totalSecs / 3600);
+    const mins = Math.floor((totalSecs % 3600) / 60);
+    if (hours > 0 && mins > 0) {
+      originalEstimate = `${hours}h ${mins}m`;
+    } else if (hours > 0) {
+      originalEstimate = `${hours}h`;
+    } else if (mins > 0) {
+      originalEstimate = `${mins}m`;
+    } else {
+      originalEstimate = `${totalSecs}s`;
+    }
+  } else if (fields.originalEstimate) {
+    originalEstimate = String(fields.originalEstimate).trim();
   }
 
   const rawCatKey = fields.status?.statusCategory?.key || '';
@@ -94,17 +107,22 @@ export function normalizeJiraIssue(raw: JiraIssueRaw, jiraBaseUrl: string): Norm
     projectKey,
     summary: fields.summary || 'Untitled Issue',
     description: extractTextFromAdf(fields.description),
+    issueType: fields.issuetype?.name || 'Task',
     status: rawStatusName,
     statusCategory: normalizeStatusCategory(rawCatKey, rawStatusName),
     priority: fields.priority?.name || 'Medium',
     assigneeId: fields.assignee?.accountId || null,
+    assigneeName: fields.assignee?.displayName || null,
+    assigneeEmail: fields.assignee?.emailAddress?.toLowerCase() || null,
     reporterId: fields.reporter?.accountId || null,
+    reporterName: fields.reporter?.displayName || null,
+    reporterEmail: fields.reporter?.emailAddress?.toLowerCase() || null,
     startDate: parseJiraDate(fields.customfield_10015 || fields.created),
     dueDate: parseJiraDate(fields.duedate),
     labels: Array.isArray(fields.labels) ? fields.labels : [],
     storyPoints,
     sprint: sprintName,
-    acceptanceCriteria,
+    originalEstimate,
     jiraUrl: `${jiraBaseUrl.replace(/\/$/, '')}/browse/${raw.key}`,
     updatedAt: parseJiraDate(fields.updated) || new Date(),
   };
