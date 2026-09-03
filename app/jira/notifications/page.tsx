@@ -52,7 +52,7 @@ export default function JiraNotificationsPage() {
 
   const categories = [
     { label: 'All Alerts', value: 'ALL' },
-    { label: 'Status & Comments', value: 'STATUS_AND_COMMENTS' },
+    { label: 'Status Updates', value: 'STATUS_CHANGE' },
     { label: 'Overdue', value: 'OVERDUE' },
     { label: 'Due Soon / Today', value: 'DUE_SOON' },
     { label: 'Quality Warnings', value: 'MISSING_FIELDS' },

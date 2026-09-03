@@ -5,7 +5,6 @@ import { evaluateDueSoon } from './due-soon';
 import { evaluateAssigned } from './assigned';
 import { evaluateMissingFields } from './missing-fields';
 import { evaluateStatusChange } from './status-change';
-import { evaluateCommentActivity } from './comment-activity';
 
 export class RuleEngine {
   /**
@@ -31,9 +30,6 @@ export class RuleEngine {
 
     const statusChange = evaluateStatusChange(ctx);
     if (statusChange) candidates.push(statusChange);
-
-    const commentActivity = evaluateCommentActivity(ctx);
-    if (commentActivity) candidates.push(commentActivity);
 
     return candidates;
   }
