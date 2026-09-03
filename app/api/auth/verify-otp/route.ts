@@ -74,8 +74,8 @@ export async function POST(request: Request) {
       message: 'Authentication successful!',
     });
 
-    // Set HTTP-only JWT session cookie
-    response.cookies.set('spyrobo_session', token, {
+    // Set secure HTTP-only JWT token cookie
+    response.cookies.set('spyrobo_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',

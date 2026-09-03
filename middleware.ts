@@ -17,7 +17,7 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for authenticated session cookie on protected workspace routes (/jira/...)
-  const sessionCookie = request.cookies.get('spyrobo_session')?.value;
+  const sessionCookie = request.cookies.get('spyrobo_token')?.value;
 
   if (!sessionCookie && pathname.startsWith('/jira')) {
     // Redirect unauthenticated visitors trying to access Jira workspace to login page

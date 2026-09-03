@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'spyrobo_production_secret_jwt_key_2026_secure';
+function getJwtSecret(): string {
+  return process.env.JWT_SECRET || 'spyrobo_production_secret_jwt_key_2026_secure';
+}
 
 export interface JwtPayload {
   userId: string;
@@ -11,12 +13,12 @@ export interface JwtPayload {
 }
 
 export function signJwtToken(payload: { userId: string; email: string; jiraAccountId?: string | null }): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, getJwtSecret(), { expiresIn: '7d' });
 }
 
 export function verifyJwtToken(token: string): JwtPayload | null {
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as JwtPayload;
+    const decoded = jwt.verify(token, getJwtSecret()) as JwtPayload;
     return decoded;
   } catch (err) {
     return null;

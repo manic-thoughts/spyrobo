@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
+import { getAuthUserFromRequest } from '@/lib/auth/session';
 
 const DEFAULT_REQUIRED_FIELDS = [
   'description',
@@ -15,9 +16,8 @@ const DEFAULT_REQUIRED_FIELDS = [
 
 export async function GET(request: Request) {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
-    const match = cookieHeader.match(/spyrobo_session=([^;]+)/);
-    const userId = match ? match[1] : undefined;
+    const authUser = await getAuthUserFromRequest(request);
+    const userId = authUser?.id;
 
     let targetUserId = userId;
 

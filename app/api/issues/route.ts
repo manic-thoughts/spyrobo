@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { JiraClient } from '@/lib/jira/client';
 import { isStoryMissingFields } from '@/lib/rules/missing-fields';
+import { getAuthUserFromRequest } from '@/lib/auth/session';
 
 export async function GET(request: Request) {
   try {
@@ -9,9 +10,8 @@ export async function GET(request: Request) {
     const filter = searchParams.get('filter') || 'all';
     const projectKey = searchParams.get('projectKey')?.toUpperCase();
 
-    const cookieHeader = request.headers.get('cookie') || '';
-    const match = cookieHeader.match(/spyrobo_session=([^;]+)/);
-    const userId = match ? match[1] : undefined;
+    const authUser = await getAuthUserFromRequest(request);
+    const userId = authUser?.id;
 
     const client = await JiraClient.forUser(userId);
     const currentUser = await client.getCurrentUser();
