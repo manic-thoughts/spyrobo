@@ -5,35 +5,40 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
+import { getCachedAuthUser } from '@/lib/auth/client-auth';
 import { 
   Zap, 
   Sparkles, 
   GitPullRequest, 
   ArrowRight, 
   Target, 
-  ShieldCheck 
+  ShieldCheck,
+  Loader2
 } from 'lucide-react';
 
 export default function MainPlatformLandingPage() {
   const router = useRouter();
   const [data, setData] = useState<any>(null);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchUserAndSummary = async () => {
     try {
-      const [summaryRes, userRes] = await Promise.all([
-        fetch('/api/dashboard/summary'),
-        fetch('/api/auth/me'),
+      const [summaryRes, userJson] = await Promise.all([
+        fetch('/api/dashboard/summary').then((r) => r.json()).catch(() => null),
+        getCachedAuthUser(),
       ]);
-      const summaryJson = await summaryRes.json();
-      const userJson = await userRes.json();
 
-      setData(summaryJson);
-      if (userJson.user && userJson.authenticated) {
+      if (summaryRes) setData(summaryRes);
+      if (userJson?.user && userJson?.authenticated && userJson?.user?.isVerified) {
         setUser(userJson.user);
+      } else {
+        setUser(null);
       }
     } catch (err) {
       console.error('Failed to load main landing data:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -42,6 +47,10 @@ export default function MainPlatformLandingPage() {
   }, []);
 
   const handleJiraActionClick = (e: React.MouseEvent) => {
+    if (loading) {
+      e.preventDefault();
+      return;
+    }
     if (!user) {
       e.preventDefault();
       router.push('/auth/login?redirect=/jira/projects');
@@ -77,14 +86,23 @@ export default function MainPlatformLandingPage() {
             </div>
 
             <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight">
-              {user ? `About SPYROBO — Welcome, ${user.displayName || user.email.split('@')[0]} 👋` : 'About SPYROBO'}
+              {loading
+                ? 'About SPYROBO'
+                : user
+                ? `About SPYROBO — Welcome, ${user.displayName || user.email.split('@')[0]} 👋`
+                : 'About SPYROBO'}
             </h1>
             <p className="text-sm md:text-base text-emerald-100 font-medium max-w-3xl leading-relaxed">
               SPYROBO is an intelligent Workflow Attention Tool over your engineering tools. Monitor Jira tickets, overdue work, and quality validation rules in one clean place.
             </p>
 
             <div className="pt-2 flex items-center gap-4 flex-wrap">
-              {user ? (
+              {loading ? (
+                <div className="px-5 py-3 rounded-xl font-black text-xs bg-emerald-900/60 text-emerald-200 border border-emerald-600 animate-pulse flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 text-emerald-300 animate-spin" />
+                  <span>Verifying Session...</span>
+                </div>
+              ) : user ? (
                 <Link
                   href="/jira/projects"
                   className="px-5 py-3 rounded-xl font-black text-xs bg-white text-emerald-900 hover:bg-emerald-50 transition shadow-sm flex items-center gap-2"
@@ -159,14 +177,21 @@ export default function MainPlatformLandingPage() {
                   Connect your Jira Cloud project scope to automatically surface overdue work, upcoming due dates, and required-field quality alerts.
                 </p>
 
-                <Link
-                  href="/jira/projects"
-                  onClick={handleJiraActionClick}
-                  className="w-full py-3.5 rounded-xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs flex items-center justify-center gap-2"
-                >
-                  <span>Select or Connect Jira Projects</span>
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
+                {loading ? (
+                  <div className="w-full py-3.5 rounded-xl font-black text-xs bg-slate-100 text-slate-400 border border-slate-200 animate-pulse flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 text-emerald-600 animate-spin" />
+                    <span>Loading Workspace...</span>
+                  </div>
+                ) : (
+                  <Link
+                    href="/jira/projects"
+                    onClick={handleJiraActionClick}
+                    className="w-full py-3.5 rounded-xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs flex items-center justify-center gap-2"
+                  >
+                    <span>{user ? 'Open My Jira Projects' : 'Select or Connect Jira Projects'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
               </div>
 
               {/* GitHub Card */}
