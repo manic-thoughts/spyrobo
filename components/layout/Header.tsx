@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LogOut, UserCheck, Menu, LogIn } from 'lucide-react';
+import { LogOut, UserCheck, Menu, LogIn, RefreshCw } from 'lucide-react';
 import LogoutModal from './LogoutModal';
+import { getCachedAuthUser, clearAuthUserCache } from '@/lib/auth/client-auth';
 
 interface HeaderProps {
   user?: {
@@ -18,10 +19,11 @@ interface HeaderProps {
   onMobileMenuToggle?: () => void;
 }
 
-export default function Header({ user: initialUser, isMockMode, onMobileMenuToggle }: HeaderProps) {
+export default function Header({ user: initialUser, isMockMode, onSyncTrigger, onMobileMenuToggle }: HeaderProps) {
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (initialUser && initialUser.email) {
@@ -29,9 +31,7 @@ export default function Header({ user: initialUser, isMockMode, onMobileMenuTogg
       return;
     }
 
-    // Fetch live auth status if user prop was not provided directly
-    fetch('/api/auth/me')
-      .then((res) => res.json())
+    getCachedAuthUser()
       .then((data) => {
         if (data?.authenticated && data?.user && data?.user?.isVerified) {
           setCurrentUser(data.user);
@@ -42,9 +42,26 @@ export default function Header({ user: initialUser, isMockMode, onMobileMenuTogg
       .catch(() => setCurrentUser(null));
   }, [initialUser]);
 
+  const handleSync = async () => {
+    setSyncing(true);
+    try {
+      if (onSyncTrigger) {
+        await onSyncTrigger();
+      } else {
+        await fetch('/api/jira/sync', { method: 'POST' });
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   const handleLogoutConfirm = async () => {
     setLoggingOut(true);
     try {
+      clearAuthUserCache();
       await fetch('/api/auth/logout', { method: 'POST' });
       window.location.href = '/auth/login';
     } catch (err) {
@@ -79,6 +96,19 @@ export default function Header({ user: initialUser, isMockMode, onMobileMenuTogg
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Instant Sync Jira Button */}
+          {isLoggedIn && (
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              title="Sync Jira Cloud Statuses"
+              className="px-2.5 py-1.5 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition shrink-0 flex items-center gap-1.5 text-xs font-bold border border-emerald-200"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 text-emerald-600 ${syncing ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">{syncing ? 'Syncing...' : 'Sync Jira'}</span>
+            </button>
+          )}
+
           {/* User Identity & Logout - Displayed ONLY when authenticated */}
           {isLoggedIn ? (
             <div className="flex items-center gap-2 sm:gap-3">
