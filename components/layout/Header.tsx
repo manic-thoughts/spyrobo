@@ -21,6 +21,7 @@ interface HeaderProps {
 
 export default function Header({ user: initialUser, isMockMode, onSyncTrigger, onMobileMenuToggle }: HeaderProps) {
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
+  const [loading, setLoading] = useState(!initialUser);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -28,9 +29,11 @@ export default function Header({ user: initialUser, isMockMode, onSyncTrigger, o
   useEffect(() => {
     if (initialUser && initialUser.email) {
       setCurrentUser(initialUser);
+      setLoading(false);
       return;
     }
 
+    setLoading(true);
     getCachedAuthUser()
       .then((data) => {
         if (data?.authenticated && data?.user && data?.user?.isVerified) {
@@ -39,7 +42,8 @@ export default function Header({ user: initialUser, isMockMode, onSyncTrigger, o
           setCurrentUser(null);
         }
       })
-      .catch(() => setCurrentUser(null));
+      .catch(() => setCurrentUser(null))
+      .finally(() => setLoading(false));
   }, [initialUser]);
 
   const handleSync = async () => {
@@ -110,7 +114,15 @@ export default function Header({ user: initialUser, isMockMode, onSyncTrigger, o
           )}
 
           {/* User Identity & Logout - Displayed ONLY when authenticated */}
-          {isLoggedIn ? (
+          {loading ? (
+            <div className="flex items-center gap-2.5 animate-pulse">
+              <div className="w-8.5 h-8.5 rounded-full bg-slate-200 shrink-0" />
+              <div className="hidden md:flex flex-col gap-1">
+                <div className="h-3 w-20 bg-slate-200 rounded" />
+                <div className="h-2.5 w-28 bg-slate-100 rounded" />
+              </div>
+            </div>
+          ) : isLoggedIn ? (
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="w-8.5 h-8.5 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-xs text-white shadow-xs shrink-0">
                 {currentUser.displayName
