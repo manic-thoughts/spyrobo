@@ -7,7 +7,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const email = (body.email || '').trim().toLowerCase();
 
+    console.log(`[API /api/auth/send-otp] Received OTP request for email: ${email}`);
+
     if (!email || !email.includes('@')) {
+      console.warn(`[API /api/auth/send-otp] Invalid email provided: "${email}"`);
       return NextResponse.json({ error: 'Valid email address is required' }, { status: 400 });
     }
 
@@ -20,6 +23,8 @@ export async function POST(request: Request) {
         displayName: email.split('@')[0],
       },
     });
+
+    console.log(`[API /api/auth/send-otp] User record upserted: ID=${user.id}, email=${user.email}`);
 
     // 2. Production DB Maintenance: Clean up old expired/used OTPs for this user
     try {
@@ -48,19 +53,21 @@ export async function POST(request: Request) {
       },
     });
 
-    // 4. Send Email via Brevo SMTP
+    console.log(`[API /api/auth/send-otp] OTP record saved to DB: code=${otpCode}, expiresAt=${expiresAt.toISOString()}`);
+
+    // 5. Send Email via Brevo SMTP
     const sent = await sendOtpEmail({ toEmail: email, otpCode });
 
     return NextResponse.json({
       success: true,
       email,
       sent,
-      message: `A 6-digit verification code has been sent to ${email}.`,
-      // For easy development testing, include dev code in response
-      devCode: process.env.NODE_ENV === 'development' ? otpCode : undefined,
+      message: `A 6-digit verification code has been generated for ${email}.`,
+      // Always output devCode if SMTP credentials are not configured or in development mode
+      devCode: (!process.env.SMTP_USER || process.env.NODE_ENV === 'development') ? otpCode : undefined,
     });
   } catch (error: any) {
-    console.error('[SendOTP Error]:', error);
+    console.error('[API /api/auth/send-otp ❌ Exception]:', error.message || error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

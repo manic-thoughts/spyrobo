@@ -6,9 +6,14 @@ const globalForPrisma = globalThis as unknown as {
 
 function cleanDatabaseUrl(rawUrl?: string): string | undefined {
   if (!rawUrl) return undefined;
-  const stripped = rawUrl.replace(/^["']|["']$/g, '').trim();
+  let stripped = rawUrl.replace(/^["']|["']$/g, '').trim();
   if (stripped.startsWith('postgres://')) {
-    return 'postgresql://' + stripped.substring(11);
+    stripped = 'postgresql://' + stripped.substring(11);
+  }
+  // Optimize Supabase Connection Pooler for Vercel Serverless Lambdas
+  if (stripped.includes('pooler.supabase.com') && !stripped.includes('connection_limit')) {
+    const separator = stripped.includes('?') ? '&' : '?';
+    stripped += `${separator}connection_limit=5&pool_timeout=10`;
   }
   return stripped;
 }
@@ -19,7 +24,7 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     datasources: dbUrl ? { db: { url: dbUrl } } : undefined,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log: ['error', 'warn'],
   });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

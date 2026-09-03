@@ -12,9 +12,10 @@ export async function sendOtpEmail({ toEmail, otpCode }: SendOtpParams): Promise
   const pass = process.env.SMTP_PASSWORD || '';
   const fromEmail = process.env.SENDER_EMAIL || 'zipdrinks77@gmail.com';
 
-  // If SMTP credentials missing, log OTP to console for dev fallback
+  // If SMTP credentials missing, log OTP to console for fallback verification
   if (!user || !pass) {
-    console.log(`[EmailService] SMTP credentials missing. Dev OTP for ${toEmail}: ${otpCode}`);
+    console.warn(`[EmailService] ⚠️ SMTP_USER or SMTP_PASSWORD environment variable missing in Vercel!`);
+    console.log(`[EmailService OTP Fallback] Generated OTP for ${toEmail}: ${otpCode}`);
     return true;
   }
 
@@ -68,15 +69,11 @@ export async function sendOtpEmail({ toEmail, otpCode }: SendOtpParams): Promise
       html: htmlContent,
     });
 
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[EmailService] OTP email sent to ${toEmail}`);
-    }
+    console.log(`[EmailService ✅] OTP email successfully dispatched to ${toEmail} via SMTP!`);
     return true;
   } catch (err: any) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.error(`[EmailService] SMTP error:`, err.message);
-      console.log(`[EmailService Dev Fallback] OTP for ${toEmail} is: ${otpCode}`);
-    }
+    console.error(`[EmailService ❌] Failed to deliver email via SMTP:`, err.message || err);
+    console.log(`[EmailService OTP Fallback Code] OTP for ${toEmail} is: ${otpCode}`);
     return false;
   }
 }

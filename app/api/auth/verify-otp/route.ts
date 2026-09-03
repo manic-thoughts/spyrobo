@@ -8,12 +8,16 @@ export async function POST(request: Request) {
     const email = (body.email || '').trim().toLowerCase();
     const code = (body.code || '').trim();
 
+    console.log(`[API /api/auth/verify-otp] Verifying OTP code for email: ${email}`);
+
     if (!email || !code) {
+      console.warn(`[API /api/auth/verify-otp] Missing email or code in body`);
       return NextResponse.json({ error: 'Email and 6-digit code are required' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({ where: { email } });
     if (!user) {
+      console.warn(`[API /api/auth/verify-otp] User not found for email: ${email}`);
       return NextResponse.json({ error: 'User not found. Please request a new OTP.' }, { status: 404 });
     }
 
@@ -29,8 +33,11 @@ export async function POST(request: Request) {
     });
 
     if (!validOtp) {
+      console.warn(`[API /api/auth/verify-otp ❌] Invalid or expired OTP submitted for ${email}`);
       return NextResponse.json({ error: 'Invalid or expired 6-digit verification code.' }, { status: 400 });
     }
+
+    console.log(`[API /api/auth/verify-otp ✅] OTP code verified successfully for ${email}`);
 
     // Mark OTP as used
     await prisma.otpToken.update({
@@ -85,7 +92,7 @@ export async function POST(request: Request) {
 
     return response;
   } catch (error: any) {
-    console.error('[VerifyOTP Error]:', error);
+    console.error('[API /api/auth/verify-otp ❌ Exception]:', error.message || error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
