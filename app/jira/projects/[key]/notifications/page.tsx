@@ -68,8 +68,7 @@ export default function ProjectNotificationsPage() {
     { label: 'Reported Overdues', value: 'REPORTED_OVERDUE' },
     { label: 'Assigned Reminders', value: 'ASSIGNED_DUE' },
     { label: 'Reported Reminders', value: 'REPORTED_DUE' },
-    { label: 'Status Updates', value: 'STATUS_CHANGE' },
-    { label: 'Comments & Activity', value: 'COMMENT_ADDED' },
+    { label: 'Status & Comments', value: 'STATUS_AND_COMMENTS' },
     { label: 'Quality Warnings', value: 'MISSING_FIELDS' },
     { label: 'Assignments', value: 'ASSIGNED' },
   ];

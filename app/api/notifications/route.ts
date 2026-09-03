@@ -79,8 +79,10 @@ export async function GET(request: Request) {
           where: {
             userId: userRecord.id,
             ...(typeFilter && typeFilter !== 'ALL'
-              ? typeFilter === 'DUE_SOON' || typeFilter === 'ASSIGNED_DUE' || typeFilter === 'REPORTED_DUE'
-                ? { type: { in: ['DUE_SOON', 'DUE_TODAY'] } }
+              ? typeFilter === 'STATUS_AND_COMMENTS'
+                ? { type: { in: ['STATUS_CHANGE', 'COMMENT_ADDED'] as any } }
+                : typeFilter === 'DUE_SOON' || typeFilter === 'ASSIGNED_DUE' || typeFilter === 'REPORTED_DUE'
+                ? { type: { in: ['DUE_SOON', 'DUE_TODAY'] as any } }
                 : typeFilter === 'ASSIGNED_OVERDUE' || typeFilter === 'REPORTED_OVERDUE'
                 ? { type: 'OVERDUE' as any }
                 : { type: typeFilter as any }
@@ -129,7 +131,9 @@ export async function GET(request: Request) {
 
         cands.forEach((c, idx) => {
           if (typeFilter && typeFilter !== 'ALL') {
-            if (typeFilter === 'DUE_SOON' || typeFilter === 'ASSIGNED_DUE' || typeFilter === 'REPORTED_DUE') {
+            if (typeFilter === 'STATUS_AND_COMMENTS') {
+              if (c.type !== 'STATUS_CHANGE' && c.type !== 'COMMENT_ADDED') return;
+            } else if (typeFilter === 'DUE_SOON' || typeFilter === 'ASSIGNED_DUE' || typeFilter === 'REPORTED_DUE') {
               if (c.type !== 'DUE_SOON' && c.type !== 'DUE_TODAY') return;
             } else if (typeFilter === 'ASSIGNED_OVERDUE' || typeFilter === 'REPORTED_OVERDUE') {
               if (c.type !== 'OVERDUE') return;
@@ -172,8 +176,6 @@ export async function GET(request: Request) {
     }
     const requiredFields = pref?.requiredFields;
 
-    console.log('[DEBUG GET NOTIFICATIONS]', { targetUserId: targetUser?.id, lastReadAllAt });
-
     const seenEventKeys = new Set<string>();
     const uniqueNotifications = notifications.filter((n) => {
       const key = `${n.issue?.jiraId || n.issueId}:${n.type}:${n.title}`;
@@ -202,6 +204,9 @@ export async function GET(request: Request) {
       if (unreadOnly && n.readAt) return false;
       if (!typeFilter || typeFilter === 'ALL') return true;
 
+      if (typeFilter === 'STATUS_AND_COMMENTS') {
+        return n.type === 'STATUS_CHANGE' || n.type === 'COMMENT_ADDED';
+      }
       if (typeFilter === 'ASSIGNED_OVERDUE') {
         return n.type === 'OVERDUE' && isAssigned(n);
       }
