@@ -17,24 +17,25 @@ export function evaluateStatusChange(ctx: RuleContext): NotificationCandidate | 
 
   if (!isAssignedToMe && !isReportedByMe) return null;
 
+  // 1. Explicit status transition from previous issue state
   if (previousIssue && previousIssue.status !== issue.status) {
     return {
       type: 'STATUS_CHANGE',
       severity: 'LOW',
-      title: `${issue.issueKey} Status Updated to "${issue.status}"`,
+      title: `${issue.issueKey} Status Changed to "${issue.status}"`,
       message: `${issue.issueKey} (${issue.summary}) moved from "${previousIssue.status}" to "${issue.status}".`,
       eventKey: `${userId}:${issue.jiraId}:STATUS_CHANGE:${previousIssue.status}->${issue.status}`,
     };
   }
 
-  // If status did NOT change, but activity/comments exist:
-  if (issue.statusCategory === 'IN_PROGRESS' || issue.status !== 'To Do') {
+  // 2. Status candidate for active status items (Done, In Progress, In Review, etc.)
+  if (issue.status && issue.status !== 'To Do') {
     return {
-      type: 'COMMENT_ADDED',
+      type: 'STATUS_CHANGE',
       severity: 'LOW',
-      title: `${issue.issueKey} New Comment / Activity`,
-      message: `New comment/activity logged on ${issue.issueKey} (${issue.summary}).`,
-      eventKey: `${userId}:${issue.jiraId}:COMMENT_ADDED:activity`,
+      title: `${issue.issueKey} Status: ${issue.status}`,
+      message: `${issue.issueKey} (${issue.summary}) current status is "${issue.status}".`,
+      eventKey: `${userId}:${issue.jiraId}:STATUS_CHANGE:${issue.status}`,
     };
   }
 

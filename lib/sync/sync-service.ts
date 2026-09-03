@@ -155,11 +155,18 @@ export class SyncService {
             jiraAccountId: accountId,
           });
 
-          // Insert candidate notifications using unique eventKey for non-spam deduplication
+          // Insert or update candidate notifications using unique eventKey for non-spam deduplication
           for (const cand of candidates) {
             try {
-              await prisma.notification.create({
-                data: {
+              await prisma.notification.upsert({
+                where: { eventKey: cand.eventKey },
+                update: {
+                  type: cand.type as any,
+                  severity: cand.severity,
+                  title: cand.title,
+                  message: cand.message,
+                },
+                create: {
                   userId: appUser.id,
                   issueId: savedIssue.id,
                   type: cand.type as any,
@@ -171,10 +178,7 @@ export class SyncService {
               });
               newNotificationsCount++;
             } catch (err: any) {
-              // P2002 is Prisma unique constraint violation code (duplicate eventKey ignored)
-              if (err.code !== 'P2002') {
-                console.warn('[SyncService] Notification insert warning:', err.message);
-              }
+              console.warn('[SyncService] Notification upsert warning:', err.message);
             }
           }
         }
