@@ -65,9 +65,13 @@ export default function Sidebar({
         { name: 'Project Settings', href: `/jira/projects/${currentProjectKey}/settings`, icon: Settings },
       ]
     : [
+        { name: 'Select / Add Project', href: '/jira/projects', icon: FolderKanban },
         { name: 'All Notifications', href: '/jira/notifications', icon: Bell, badge: unreadCount },
         { name: 'Workspace Settings', href: '/jira/settings', icon: Settings },
       ];
+
+  const isJiraActive = pathname.startsWith('/jira');
+  const isHomeActive = pathname === '/';
 
   const handleLogoutConfirm = async () => {
     setLoggingOut(true);
@@ -83,10 +87,10 @@ export default function Sidebar({
   };
 
   const sidebarContent = (
-    <div className="p-4 flex flex-col justify-between h-full space-y-6">
-      <div className="space-y-6">
-        {/* Top Branding Header */}
-        <div className="flex items-center justify-between">
+    <div className="flex flex-col justify-between h-full p-4">
+      <div>
+        {/* Brand Logo Header with Lens Icon */}
+        <div className="flex items-center justify-between px-3 py-3 mb-5 border-b border-slate-100">
           <Link href="/" onClick={onMobileClose} className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-xs">
               <Scan className="w-6 h-6 text-white" />
@@ -109,98 +113,120 @@ export default function Sidebar({
           )}
         </div>
 
-        {/* Navigation Section 1: About Button */}
-        <div>
-          <Link
-            href="/"
-            onClick={onMobileClose}
-            className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs transition border ${
-              pathname === '/'
-                ? 'bg-emerald-50 text-emerald-900 border-emerald-300/80 shadow-2xs'
-                : 'text-slate-700 hover:bg-emerald-50/60 hover:border-emerald-200 border-slate-200/80'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <Info className="w-4 h-4 text-emerald-600" />
-              <span>About SPYROBO</span>
-            </div>
-          </Link>
-        </div>
-
-        {/* Navigation Section 2: JIRA Integration Stream */}
+        {/* Navigation Categories */}
         <div className="space-y-4">
-          <div className="space-y-1">
-            <div className="flex items-center justify-between px-3 py-1">
-              <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                Integrations
-              </span>
+          {/* Section 1: About SPYROBO Button */}
+          <div>
+            <Link
+              href="/"
+              onClick={onMobileClose}
+              className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-bold text-sm transition-all ${
+                isHomeActive
+                  ? 'bg-emerald-600 text-white shadow-xs'
+                  : 'text-slate-700 hover:text-emerald-700 hover:bg-emerald-50'
+              }`}
+            >
+              <Info className={`w-4 h-4 ${isHomeActive ? 'text-white' : 'text-emerald-600'}`} />
+              <span>About SPYROBO</span>
+            </Link>
+          </div>
+
+          {/* Section 2: JIRA Integration Category */}
+          <div>
+            <div className="px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+              <span>Integrations</span>
             </div>
 
-            {/* Jira Main Parent */}
             <div className="space-y-1">
               <button
                 onClick={() => setJiraOpen(!jiraOpen)}
-                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs transition border ${
-                  pathname.startsWith('/jira')
-                    ? 'bg-slate-900 text-white border-slate-800 shadow-xs'
-                    : 'text-slate-700 hover:bg-slate-100 border-slate-200/60'
+                className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-extrabold text-sm transition-all ${
+                  isJiraActive
+                    ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                    : 'text-slate-700 hover:bg-slate-100'
                 }`}
               >
                 <div className="flex items-center gap-2.5">
-                  <Zap className={`w-4 h-4 ${pathname.startsWith('/jira') ? 'text-emerald-400' : 'text-emerald-600'}`} />
+                  <div className="w-5 h-5 rounded bg-emerald-600 text-white flex items-center justify-center font-bold text-xs">
+                    J
+                  </div>
                   <span>Jira Cloud</span>
                 </div>
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${jiraOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Jira Sub-Items */}
+              {/* Active Project Selector / Switcher */}
               {jiraOpen && (
-                <div className="pl-3 pt-1 space-y-1 border-l-2 border-slate-100 ml-4">
-                  {/* Select/Change Project Button */}
-                  <Link
-                    href="/jira/projects"
-                    onClick={onMobileClose}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs font-semibold transition ${
-                      pathname === '/jira/projects'
-                        ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                        : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <FolderKanban className={`w-3.5 h-3.5 ${pathname === '/jira/projects' ? 'text-white' : 'text-slate-500'}`} />
-                      <span>{currentProjectKey ? `Project: ${currentProjectKey}` : 'Projects Overview'}</span>
-                    </div>
-                    <ArrowRightLeft className="w-3 h-3 opacity-60" />
-                  </Link>
-
-                  {/* Scoped Project Items */}
-                  {jiraSubItems.map((sub) => {
-                    const isSubActive = pathname === sub.href;
-                    const SubIcon = sub.icon;
-
-                    return (
+                <div className="pl-3 mt-1.5 space-y-2">
+                  {currentProjectKey ? (
+                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Active Scope</span>
+                        <span className="text-xs font-black text-emerald-700 truncate block">{currentProjectKey}</span>
+                      </div>
                       <Link
-                        key={sub.name}
-                        href={sub.href}
+                        href="/jira/projects"
                         onClick={onMobileClose}
-                        className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-xs transition ${
-                          isSubActive
-                            ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                            : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
-                        }`}
+                        className="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[10px] font-bold flex items-center gap-1 transition shrink-0"
+                        title="Switch Jira Project"
                       >
-                        <div className="flex items-center gap-2.5">
-                          <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? 'text-white' : 'text-slate-500'}`} />
-                          <span>{sub.name}</span>
-                        </div>
-                        {sub.badge !== undefined && sub.badge > 0 && (
-                          <span className={`w-2 h-2 rounded-full shadow-xs shrink-0 ${isSubActive ? 'bg-white' : 'bg-emerald-500'}`} />
-                        )}
+                        <ArrowRightLeft className="w-3 h-3 text-emerald-600" />
+                        <span>Switch</span>
                       </Link>
-                    );
-                  })}
+                    </div>
+                  ) : (
+                    <Link
+                      href="/jira/projects"
+                      onClick={onMobileClose}
+                      className="block p-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold text-center hover:bg-emerald-100 transition"
+                    >
+                      Select a Project →
+                    </Link>
+                  )}
+
+                  {/* Nested Sub-Items */}
+                  <div className="space-y-1 border-l-2 border-emerald-200 ml-2 pl-3">
+                    {jiraSubItems.map((sub) => {
+                      const SubIcon = sub.icon;
+                      const isSubActive = pathname === sub.href;
+
+                      return (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          onClick={onMobileClose}
+                          className={`flex items-center justify-between px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
+                            isSubActive
+                              ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                              : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2.5">
+                            <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? 'text-white' : 'text-slate-500'}`} />
+                            <span>{sub.name}</span>
+                          </div>
+                          {sub.badge !== undefined && sub.badge > 0 && (
+                            <span className={`w-2 h-2 rounded-full shadow-xs shrink-0 ${isSubActive ? 'bg-white' : 'bg-emerald-500'}`} />
+                          )}
+                        </Link>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Section 3: GITHUB Stream Slot */}
+          <div>
+            <div className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-400 font-semibold text-sm bg-slate-50 border border-slate-200/60 opacity-80 cursor-not-allowed">
+              <div className="flex items-center gap-2.5">
+                <GitPullRequest className="w-4 h-4 text-slate-400" />
+                <span>GitHub Stream</span>
+              </div>
+              <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-slate-200 text-slate-600">
+                Soon
+              </span>
             </div>
           </div>
         </div>
@@ -218,7 +244,8 @@ export default function Sidebar({
           </p>
         </div>
 
-        {isLoggedIn ? (
+        {/* Only render logout button if user is signed in */}
+        {isLoggedIn && (
           <button
             onClick={() => setShowLogoutModal(true)}
             className="w-full flex items-center gap-2.5 px-3.5 py-2 rounded-xl text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 transition"
@@ -226,15 +253,6 @@ export default function Sidebar({
             <LogOut className="w-4 h-4 text-rose-600" />
             <span>Sign Out of SPYROBO</span>
           </button>
-        ) : (
-          <Link
-            href="/auth/login"
-            onClick={onMobileClose}
-            className="w-full flex items-center justify-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 transition shadow-xs"
-          >
-            <LogIn className="w-4 h-4" />
-            <span>Sign In to SPYROBO</span>
-          </Link>
         )}
       </div>
 
