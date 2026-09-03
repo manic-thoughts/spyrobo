@@ -64,11 +64,7 @@ export default function Sidebar({
         { name: 'My Cards', href: `/jira/projects/${currentProjectKey}/cards`, icon: CreditCard },
         { name: 'Project Settings', href: `/jira/projects/${currentProjectKey}/settings`, icon: Settings },
       ]
-    : [
-        { name: 'Select / Add Project', href: '/jira/projects', icon: FolderKanban },
-        { name: 'All Notifications', href: '/jira/notifications', icon: Bell, badge: unreadCount },
-        { name: 'Workspace Settings', href: '/jira/settings', icon: Settings },
-      ];
+    : [];
 
   const isJiraActive = pathname.startsWith('/jira');
   const isHomeActive = pathname === '/';
@@ -155,63 +151,70 @@ export default function Sidebar({
                 <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${jiraOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Active Project Selector / Switcher */}
+              {/* Active Project Selector & Scoped Sub-Items */}
               {jiraOpen && (
                 <div className="pl-3 mt-1.5 space-y-2">
                   {currentProjectKey ? (
-                    <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
-                      <div className="min-w-0">
-                        <span className="text-[10px] font-bold uppercase text-slate-400 block">Active Scope</span>
-                        <span className="text-xs font-black text-emerald-700 truncate block">{currentProjectKey}</span>
+                    <>
+                      <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+                        <div className="min-w-0">
+                          <span className="text-[10px] font-bold uppercase text-slate-400 block">Active Scope</span>
+                          <span className="text-xs font-black text-emerald-700 truncate block">{currentProjectKey}</span>
+                        </div>
+                        <Link
+                          href="/jira/projects"
+                          onClick={onMobileClose}
+                          className="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[10px] font-bold flex items-center gap-1 transition shrink-0"
+                          title="Switch Jira Project"
+                        >
+                          <ArrowRightLeft className="w-3 h-3 text-emerald-600" />
+                          <span>Switch</span>
+                        </Link>
                       </div>
-                      <Link
-                        href="/jira/projects"
-                        onClick={onMobileClose}
-                        className="px-2 py-1 rounded bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 text-[10px] font-bold flex items-center gap-1 transition shrink-0"
-                        title="Switch Jira Project"
-                      >
-                        <ArrowRightLeft className="w-3 h-3 text-emerald-600" />
-                        <span>Switch</span>
-                      </Link>
-                    </div>
+
+                      {/* Nested Scoped Sub-Items (Dashboard, Notifications, My Cards, Settings) */}
+                      <div className="space-y-1 border-l-2 border-emerald-200 ml-2 pl-3">
+                        {jiraSubItems.map((sub) => {
+                          const SubIcon = sub.icon;
+                          const isSubActive = pathname === sub.href;
+
+                          return (
+                            <Link
+                              key={sub.href}
+                              href={sub.href}
+                              onClick={onMobileClose}
+                              className={`flex items-center justify-between px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
+                                isSubActive
+                                  ? 'bg-emerald-600 text-white shadow-xs font-bold'
+                                  : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5">
+                                <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? 'text-white' : 'text-slate-500'}`} />
+                                <span>{sub.name}</span>
+                              </div>
+                              {sub.badge !== undefined && sub.badge > 0 && (
+                                <span className={`w-2 h-2 rounded-full shadow-xs shrink-0 ${isSubActive ? 'bg-white' : 'bg-emerald-500'}`} />
+                              )}
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
                     <Link
                       href="/jira/projects"
                       onClick={onMobileClose}
-                      className="block p-2 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-bold text-center hover:bg-emerald-100 transition"
+                      className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-bold transition border ${
+                        pathname === '/jira/projects'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                      }`}
                     >
-                      Select a Project →
+                      <FolderKanban className="w-4 h-4" />
+                      <span>Select / Add Project →</span>
                     </Link>
                   )}
-
-                  {/* Nested Sub-Items */}
-                  <div className="space-y-1 border-l-2 border-emerald-200 ml-2 pl-3">
-                    {jiraSubItems.map((sub) => {
-                      const SubIcon = sub.icon;
-                      const isSubActive = pathname === sub.href;
-
-                      return (
-                        <Link
-                          key={sub.href}
-                          href={sub.href}
-                          onClick={onMobileClose}
-                          className={`flex items-center justify-between px-3 py-2 rounded-lg font-semibold text-xs transition-all ${
-                            isSubActive
-                              ? 'bg-emerald-600 text-white shadow-xs font-bold'
-                              : 'text-slate-600 hover:text-emerald-700 hover:bg-emerald-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2.5">
-                            <SubIcon className={`w-3.5 h-3.5 ${isSubActive ? 'text-white' : 'text-slate-500'}`} />
-                            <span>{sub.name}</span>
-                          </div>
-                          {sub.badge !== undefined && sub.badge > 0 && (
-                            <span className={`w-2 h-2 rounded-full shadow-xs shrink-0 ${isSubActive ? 'bg-white' : 'bg-emerald-500'}`} />
-                          )}
-                        </Link>
-                      );
-                    })}
-                  </div>
                 </div>
               )}
             </div>
