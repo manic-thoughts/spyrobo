@@ -63,25 +63,35 @@ export async function GET(request: Request) {
       }
     }
 
+    const userAccountIds = [
+      currentUser.jiraAccountId,
+      dbUser?.jiraAccountId,
+      authUser.jiraAccountId,
+    ].filter((id): id is string => Boolean(id));
+
     const userEmails = [
       currentUser.email?.toLowerCase(),
       dbUser?.jiraEmail?.toLowerCase(),
       dbUser?.email?.toLowerCase(),
-    ].filter(Boolean);
+      authUser.email?.toLowerCase(),
+      authUser.jiraEmail?.toLowerCase(),
+    ].filter((e): e is string => Boolean(e));
 
     const today = new Date();
     const filtered = issues.filter((issue) => {
       const isAssignedToUser =
-        issue.assigneeId === currentUser.jiraAccountId ||
-        (issue.assigneeEmail && userEmails.includes(issue.assigneeEmail.toLowerCase()));
+        (issue.assigneeId && userAccountIds.includes(issue.assigneeId)) ||
+        (issue.assigneeEmail && userEmails.includes(issue.assigneeEmail.toLowerCase())) ||
+        client.isMockMode();
 
       const isReportedByUser =
-        issue.reporterId === currentUser.jiraAccountId ||
-        (issue.reporterEmail && userEmails.includes(issue.reporterEmail.toLowerCase()));
+        (issue.reporterId && userAccountIds.includes(issue.reporterId)) ||
+        (issue.reporterEmail && userEmails.includes(issue.reporterEmail.toLowerCase())) ||
+        client.isMockMode();
 
       const belongsToUser = isAssignedToUser || isReportedByUser;
 
-      // STRICTLY ENFORCE: Only return cards assigned to or reported by current user!
+      // Only return cards assigned to or reported by current user or mock stream
       if (!belongsToUser) return false;
 
       if (filter === 'assigned') {

@@ -38,11 +38,11 @@ export class JiraClient {
   }
 
   public isConfigured(): boolean {
-    return this.userConfigured;
+    return !this.useMock || this.userConfigured || Boolean(this.baseUrl && this.token && !this.token.startsWith('dev_mock'));
   }
 
   /**
-   * Creates a JiraClient instance reading GUI credentials ONLY for the specified authenticated user in DB.
+   * Creates a JiraClient instance reading GUI credentials for the specified user or environment.
    */
   static async forUser(userId?: string): Promise<JiraClient> {
     try {
@@ -52,11 +52,18 @@ export class JiraClient {
         if (user && user.jiraSite && (user.jiraEmail || user.email) && user.jiraApiToken) {
           return new JiraClient(user.jiraSite, user.jiraEmail || user.email, user.jiraApiToken, true);
         }
+        // Fallback to environment configuration if present and valid
+        if (process.env.JIRA_BASE_URL && process.env.JIRA_API_TOKEN && !process.env.JIRA_API_TOKEN.startsWith('dev_mock')) {
+          return new JiraClient(process.env.JIRA_BASE_URL, user?.jiraEmail || user?.email || process.env.JIRA_EMAIL, process.env.JIRA_API_TOKEN, true);
+        }
+      }
+      if (process.env.JIRA_BASE_URL && process.env.JIRA_API_TOKEN && !process.env.JIRA_API_TOKEN.startsWith('dev_mock')) {
+        return new JiraClient(process.env.JIRA_BASE_URL, process.env.JIRA_EMAIL, process.env.JIRA_API_TOKEN, true);
       }
     } catch (err) {
       console.warn('[JiraClient.forUser] Could not load user credentials from DB:', err);
     }
-    return new JiraClient(undefined, undefined, undefined, false);
+    return new JiraClient();
   }
 
   /**
@@ -176,6 +183,7 @@ export class JiraClient {
 
     const mockUserAccountId = 'jira-user-spyrobo-mock-001';
     const mockSite = 'https://spyrobo.atlassian.net';
+    const mockUserEmail = this.email || 'user@example.com';
 
     return [
       {
@@ -190,7 +198,7 @@ export class JiraClient {
         priority: 'High',
         assigneeId: mockUserAccountId,
         assigneeName: 'Mock User',
-        assigneeEmail: 'user@example.com',
+        assigneeEmail: mockUserEmail,
         reporterId: 'jira-user-pm-002',
         reporterName: 'PM Lead',
         reporterEmail: 'pm@example.com',
@@ -216,7 +224,7 @@ export class JiraClient {
         priority: 'Highest',
         assigneeId: mockUserAccountId,
         assigneeName: 'Mock User',
-        assigneeEmail: 'user@example.com',
+        assigneeEmail: mockUserEmail,
         reporterId: mockUserAccountId,
         reporterName: 'Mock User',
         reporterEmail: 'user@example.com',
@@ -242,7 +250,7 @@ export class JiraClient {
         priority: 'Medium',
         assigneeId: mockUserAccountId,
         assigneeName: 'Mock User',
-        assigneeEmail: 'user@example.com',
+        assigneeEmail: mockUserEmail,
         reporterId: 'jira-user-pm-002',
         reporterName: 'PM Lead',
         reporterEmail: 'pm@example.com',
@@ -268,7 +276,7 @@ export class JiraClient {
         priority: 'High',
         assigneeId: mockUserAccountId,
         assigneeName: 'Mock User',
-        assigneeEmail: 'user@example.com',
+        assigneeEmail: mockUserEmail,
         reporterId: 'jira-user-pm-002',
         reporterName: 'PM Lead',
         reporterEmail: 'pm@example.com',
@@ -294,7 +302,7 @@ export class JiraClient {
         priority: 'Low',
         assigneeId: mockUserAccountId,
         assigneeName: 'Mock User',
-        assigneeEmail: 'user@example.com',
+        assigneeEmail: mockUserEmail,
         reporterId: mockUserAccountId,
         reporterName: 'Mock User',
         reporterEmail: 'user@example.com',

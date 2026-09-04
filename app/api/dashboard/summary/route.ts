@@ -69,6 +69,11 @@ export async function GET(request: Request) {
     let notifications: any[] = [];
     let syncState: any = null;
 
+    const userAccountIds = [
+      currentUser.jiraAccountId,
+      dbUser?.jiraAccountId,
+    ].filter((id): id is string => Boolean(id));
+
     const userEmails: string[] = [
       currentUser.email?.toLowerCase(),
       dbUser?.jiraEmail?.toLowerCase(),
@@ -101,11 +106,15 @@ export async function GET(request: Request) {
 
       issues = filteredNormalized.filter((issue) => {
         const isAssigned =
-          issue.assigneeId === currentUser.jiraAccountId ||
-          (issue.assigneeEmail && userEmails.includes(issue.assigneeEmail.toLowerCase()));
+          (issue.assigneeId && userAccountIds.includes(issue.assigneeId)) ||
+          (issue.assigneeEmail && userEmails.includes(issue.assigneeEmail.toLowerCase())) ||
+          client.isMockMode();
+
         const isReported =
-          issue.reporterId === currentUser.jiraAccountId ||
-          (issue.reporterEmail && userEmails.includes(issue.reporterEmail.toLowerCase()));
+          (issue.reporterId && userAccountIds.includes(issue.reporterId)) ||
+          (issue.reporterEmail && userEmails.includes(issue.reporterEmail.toLowerCase())) ||
+          client.isMockMode();
+
         return isAssigned || isReported;
       });
     }
@@ -142,12 +151,14 @@ export async function GET(request: Request) {
     notifications = liveNotifications;
 
     const isAssigned = (n: any) =>
-      n.issue?.assigneeId === currentUser.jiraAccountId ||
-      (n.issue?.assigneeEmail && userEmails.includes(n.issue.assigneeEmail.toLowerCase()));
+      (n.issue?.assigneeId && userAccountIds.includes(n.issue.assigneeId)) ||
+      (n.issue?.assigneeEmail && userEmails.includes(n.issue.assigneeEmail.toLowerCase())) ||
+      client.isMockMode();
 
     const isReported = (n: any) =>
-      n.issue?.reporterId === currentUser.jiraAccountId ||
-      (n.issue?.reporterEmail && userEmails.includes(n.issue.reporterEmail.toLowerCase()));
+      (n.issue?.reporterId && userAccountIds.includes(n.issue.reporterId)) ||
+      (n.issue?.reporterEmail && userEmails.includes(n.issue.reporterEmail.toLowerCase())) ||
+      client.isMockMode();
 
     // Count metrics with Assigned vs Reported breakdown
     const assignedOverdueCount = notifications.filter((n) => n.type === 'OVERDUE' && isAssigned(n)).length;

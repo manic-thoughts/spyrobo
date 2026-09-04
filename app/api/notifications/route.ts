@@ -187,13 +187,21 @@ export async function GET(request: Request) {
       };
     });
 
+    const userAccountIds = [
+      currentUser.jiraAccountId,
+      dbUser?.jiraAccountId,
+      authUser.jiraAccountId,
+    ].filter((id): id is string => Boolean(id));
+
     const isAssigned = (n: any) =>
-      n.issue?.assigneeId === currentUser.jiraAccountId ||
-      (n.issue?.assigneeEmail && userEmails.includes(n.issue.assigneeEmail.toLowerCase()));
+      (n.issue?.assigneeId && userAccountIds.includes(n.issue.assigneeId)) ||
+      (n.issue?.assigneeEmail && userEmails.includes(n.issue.assigneeEmail.toLowerCase())) ||
+      client.isMockMode();
 
     const isReported = (n: any) =>
-      n.issue?.reporterId === currentUser.jiraAccountId ||
-      (n.issue?.reporterEmail && userEmails.includes(n.issue.reporterEmail.toLowerCase()));
+      (n.issue?.reporterId && userAccountIds.includes(n.issue.reporterId)) ||
+      (n.issue?.reporterEmail && userEmails.includes(n.issue.reporterEmail.toLowerCase())) ||
+      client.isMockMode();
 
     const filteredNotifications = mappedNotifications.filter((n) => {
       if (unreadOnly && n.readAt) return false;
