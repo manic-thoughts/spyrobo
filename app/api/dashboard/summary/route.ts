@@ -167,7 +167,15 @@ export async function GET(request: Request) {
       .slice(0, 8);
 
     return NextResponse.json({
-      user: currentUser,
+      user: {
+        id: dbUser.id,
+        email: dbUser.email,
+        displayName: dbUser.displayName || currentUser.displayName,
+        jiraEmail: dbUser.jiraEmail || currentUser.email,
+        jiraSite: dbUser.jiraSite || currentUser.jiraSite,
+        jiraAccountId: dbUser.jiraAccountId || currentUser.jiraAccountId,
+        isVerified: dbUser.isVerified ?? true,
+      },
       projectKey: projectKey || 'ALL',
       isMockMode: client.isMockMode(),
       metrics: {

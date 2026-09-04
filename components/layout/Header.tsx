@@ -21,28 +21,36 @@ interface HeaderProps {
 
 export default function Header({ user: initialUser, isMockMode, onSyncTrigger, onMobileMenuToggle }: HeaderProps) {
   const [currentUser, setCurrentUser] = useState<any>(initialUser || null);
-  const [loading, setLoading] = useState(!initialUser);
+  const [loading, setLoading] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
-    if (initialUser && initialUser.email) {
-      setCurrentUser(initialUser);
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
+    // 1. Fetch authenticated session user from cache/auth API first to guarantee full DB user data
     getCachedAuthUser()
       .then((data) => {
-        if (data?.authenticated && data?.user && data?.user?.isVerified) {
+        if (data?.authenticated && data?.user && data?.user?.isVerified !== false) {
           setCurrentUser(data.user);
+        } else if (initialUser && (initialUser.email || initialUser.displayName)) {
+          setCurrentUser({
+            ...initialUser,
+            isVerified: initialUser.isVerified ?? true,
+          });
         } else {
           setCurrentUser(null);
         }
       })
-      .catch(() => setCurrentUser(null))
+      .catch(() => {
+        if (initialUser && (initialUser.email || initialUser.displayName)) {
+          setCurrentUser({
+            ...initialUser,
+            isVerified: initialUser.isVerified ?? true,
+          });
+        } else {
+          setCurrentUser(null);
+        }
+      })
       .finally(() => setLoading(false));
   }, [initialUser]);
 
@@ -76,7 +84,11 @@ export default function Header({ user: initialUser, isMockMode, onSyncTrigger, o
     }
   };
 
-  const isLoggedIn = Boolean(currentUser && currentUser.isVerified);
+  const isLoggedIn = Boolean(
+    currentUser &&
+    currentUser.isVerified !== false &&
+    (currentUser.email || currentUser.displayName)
+  );
 
   return (
     <>
