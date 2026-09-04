@@ -17,23 +17,12 @@ const DEFAULT_REQUIRED_FIELDS = [
 export async function GET(request: Request) {
   try {
     const authUser = await getAuthUserFromRequest(request);
-    const userId = authUser?.id;
-
-    let targetUserId = userId;
-
-    if (!targetUserId) {
-      const demoUser = await prisma.user.findFirst({
-        where: { isVerified: true },
-      });
-      if (demoUser) targetUserId = demoUser.id;
-    }
-
-    if (!targetUserId) {
-      return NextResponse.json({ requiredFields: DEFAULT_REQUIRED_FIELDS });
+    if (!authUser) {
+      return NextResponse.json({ requiredFields: DEFAULT_REQUIRED_FIELDS, dueSoonDays: 3 });
     }
 
     const pref = await prisma.notificationPreference.findUnique({
-      where: { userId: targetUserId },
+      where: { userId: authUser.id },
     });
 
     return NextResponse.json({
@@ -47,23 +36,12 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
-    const match = cookieHeader.match(/spyrobo_session=([^;]+)/);
-    const userId = match ? match[1] : undefined;
-
-    let targetUserId = userId;
-
-    if (!targetUserId) {
-      const demoUser = await prisma.user.findFirst({
-        where: { isVerified: true },
-      });
-      if (demoUser) targetUserId = demoUser.id;
-    }
-
-    if (!targetUserId) {
+    const authUser = await getAuthUserFromRequest(request);
+    if (!authUser) {
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 });
     }
 
+    const targetUserId = authUser.id;
     const body = await request.json();
     const requiredFields = Array.isArray(body.requiredFields) ? body.requiredFields : DEFAULT_REQUIRED_FIELDS;
     const dueSoonDays = typeof body.dueSoonDays === 'number' ? body.dueSoonDays : 3;

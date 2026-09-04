@@ -10,9 +10,59 @@ export async function GET(request: Request) {
     const projectKey = searchParams.get('projectKey')?.toUpperCase();
 
     const dbUser = await getAuthUserFromRequest(request);
-    const userId = dbUser?.id;
+    if (!dbUser) {
+      return NextResponse.json({
+        user: null,
+        projectKey: projectKey || 'ALL',
+        isMockMode: false,
+        metrics: {
+          overdueCount: 0,
+          assignedOverdueCount: 0,
+          reportedOverdueCount: 0,
+          dueRemindersCount: 0,
+          assignedRemindersCount: 0,
+          reportedRemindersCount: 0,
+          missingFieldsCount: 0,
+          assignmentCount: 0,
+          unreadCount: 0,
+          totalAttentionCount: 0,
+        },
+        topAttentionItems: [],
+        allNotifications: [],
+        recentActivity: [],
+        lastSyncAt: new Date(),
+      });
+    }
 
+    const userId = dbUser.id;
     const client = await JiraClient.forUser(userId);
+    const isConfigured = client.isConfigured() || Boolean(dbUser.jiraSite && dbUser.jiraApiToken);
+
+    if (!isConfigured) {
+      return NextResponse.json({
+        user: { email: dbUser.email, displayName: dbUser.displayName },
+        projectKey: projectKey || 'ALL',
+        isMockMode: false,
+        connected: false,
+        metrics: {
+          overdueCount: 0,
+          assignedOverdueCount: 0,
+          reportedOverdueCount: 0,
+          dueRemindersCount: 0,
+          assignedRemindersCount: 0,
+          reportedRemindersCount: 0,
+          missingFieldsCount: 0,
+          assignmentCount: 0,
+          unreadCount: 0,
+          totalAttentionCount: 0,
+        },
+        topAttentionItems: [],
+        allNotifications: [],
+        recentActivity: [],
+        lastSyncAt: new Date(),
+      });
+    }
+
     const currentUser = await client.getCurrentUser();
 
     let issues: any[] = [];

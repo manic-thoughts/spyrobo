@@ -23,6 +23,7 @@ export default function JiraProjectsGatewayPage() {
   const [newName, setNewName] = useState('');
   const [adding, setAdding] = useState(false);
   const [showGuiConnect, setShowGuiConnect] = useState(false);
+  const [isJiraConnected, setIsJiraConnected] = useState(true);
 
   // GUI Jira Credentials state
   const [jiraSiteInput, setJiraSiteInput] = useState('');
@@ -47,7 +48,16 @@ export default function JiraProjectsGatewayPage() {
         return;
       }
 
-      setProjects(projJson.projects || []);
+      const connected = projJson.connected !== false;
+      const projList = projJson.projects || [];
+      
+      setProjects(projList);
+      setIsJiraConnected(connected);
+
+      if (!connected || projList.length === 0) {
+        setShowGuiConnect(true);
+      }
+
       if (userJson.user) {
         setUser(userJson.user);
         setJiraEmailInput(userJson.user.jiraEmail || userJson.user.email || '');
@@ -106,7 +116,7 @@ export default function JiraProjectsGatewayPage() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Failed to connect Jira');
 
-      setConnectMessage('✓ Jira Cloud GUI credentials saved and connected successfully!');
+      setConnectMessage('✓ Jira Cloud credentials connected successfully! Fetching your projects...');
       setTimeout(() => setShowGuiConnect(false), 2000);
       await fetchProjectsAndUser();
     } catch (err: any) {
@@ -136,33 +146,35 @@ export default function JiraProjectsGatewayPage() {
                 className="px-3.5 py-1.5 rounded-xl font-bold text-xs bg-emerald-900 hover:bg-emerald-950 text-emerald-100 border border-emerald-600 transition flex items-center gap-1.5"
               >
                 <Key className="w-3.5 h-3.5 text-emerald-300" />
-                <span>Configure Live Jira Credentials</span>
+                <span>{showGuiConnect ? 'Hide Jira Setup' : 'Configure Live Jira Credentials'}</span>
               </button>
             </div>
             <p className="text-xs text-emerald-100 font-medium leading-relaxed max-w-2xl">
-              Choose an active project below to open its dedicated Attention Dashboard, Notifications, Cards stream, and Quality Validation rules.
+              Connect your Jira account below to automatically import and view your Jira Cloud projects and assigned tasks.
             </p>
           </div>
 
           {/* GUI Jira Credentials Setup Panel */}
           {showGuiConnect && (
-            <div className="glass-card p-6 bg-white border-2 border-emerald-300 rounded-2xl space-y-5 shadow-xs">
+            <div className="glass-card p-6 bg-white border-2 border-emerald-400 rounded-2xl space-y-5 shadow-xs">
               <div className="flex items-center justify-between border-b border-slate-200 pb-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-black text-sm">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black text-base shadow-xs">
                     J
                   </div>
                   <div>
-                    <h3 className="text-sm font-black text-slate-900">GUI Jira Connection Setup</h3>
-                    <p className="text-xs text-slate-500 font-medium">Connect your live Atlassian Jira Cloud instance directly from the UI</p>
+                    <h3 className="text-sm font-black text-slate-900">Connect Your Jira Account</h3>
+                    <p className="text-xs text-slate-500 font-medium">Enter your Jira Cloud site domain and API token to sync your personal projects</p>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowGuiConnect(false)}
-                  className="text-xs font-bold text-slate-400 hover:text-slate-700"
-                >
-                  Close ✕
-                </button>
+                {projects.length > 0 && (
+                  <button
+                    onClick={() => setShowGuiConnect(false)}
+                    className="text-xs font-bold text-slate-400 hover:text-slate-700"
+                  >
+                    Close ✕
+                  </button>
+                )}
               </div>
 
               <form onSubmit={handleGuiConnectSubmit} className="space-y-4">
@@ -224,7 +236,7 @@ export default function JiraProjectsGatewayPage() {
                     disabled={connecting}
                     className="py-2.5 px-5 rounded-xl font-black text-xs bg-emerald-600 hover:bg-emerald-700 text-white transition shadow-xs disabled:opacity-50"
                   >
-                    {connecting ? 'Saving GUI Connection...' : 'Save & Connect Jira GUI'}
+                    {connecting ? 'Connecting Jira...' : 'Save & Connect My Jira'}
                   </button>
                 </div>
 
@@ -240,7 +252,7 @@ export default function JiraProjectsGatewayPage() {
           {/* Connected Projects Selector */}
           <div className="space-y-4">
             <h3 className="text-sm font-black text-slate-900 flex items-center justify-between">
-              <span>Select Active Project ({projects.length})</span>
+              <span>Your Connected Projects ({projects.length})</span>
               <span className="text-xs text-slate-500 font-normal">Click any project to enter its dashboard</span>
             </h3>
 
@@ -249,6 +261,16 @@ export default function JiraProjectsGatewayPage() {
                 {[1, 2, 3].map((n) => (
                   <div key={n} className="h-32 rounded-2xl bg-slate-200/60 animate-pulse border border-slate-300/40" />
                 ))}
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="p-8 rounded-2xl bg-white border border-slate-200 text-center space-y-3">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 mx-auto flex items-center justify-center font-bold text-lg">
+                  <FolderKanban className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-black text-slate-900">No Jira Projects Connected Yet</h4>
+                <p className="text-xs text-slate-500 font-medium max-w-md mx-auto">
+                  Connect your Jira account above or enter your project key below to add your first Jira project.
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">

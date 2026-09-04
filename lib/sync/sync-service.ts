@@ -40,21 +40,32 @@ export class SyncService {
 
       // Attempt DB persistence
       try {
-        // Upsert User
-        appUser = await prisma.user.upsert({
-          where: { jiraAccountId: accountId },
-          update: {
-            displayName: jiraUser.displayName,
-            email: jiraUser.email,
-            jiraSite: jiraUser.jiraSite,
-          },
-          create: {
-            jiraAccountId: accountId,
-            displayName: jiraUser.displayName,
-            email: jiraUser.email,
-            jiraSite: jiraUser.jiraSite,
-          },
-        });
+        // Upsert/Update User
+        if (userId) {
+          appUser = await prisma.user.update({
+            where: { id: userId },
+            data: {
+              jiraAccountId: accountId,
+              displayName: jiraUser.displayName || undefined,
+              jiraSite: jiraUser.jiraSite || undefined,
+            },
+          });
+        } else {
+          appUser = await prisma.user.upsert({
+            where: { jiraAccountId: accountId },
+            update: {
+              displayName: jiraUser.displayName,
+              email: jiraUser.email,
+              jiraSite: jiraUser.jiraSite,
+            },
+            create: {
+              jiraAccountId: accountId,
+              displayName: jiraUser.displayName,
+              email: jiraUser.email,
+              jiraSite: jiraUser.jiraSite,
+            },
+          });
+        }
 
         // Initialize Preferences if missing
         await prisma.notificationPreference.upsert({

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db/prisma';
 import { JiraClient } from '@/lib/jira/client';
 import { defaultRuleEngine } from '@/lib/rules/engine';
+import { getAuthUserFromRequest } from '@/lib/auth/session';
 
 export async function GET(request: Request) {
   try {
@@ -10,40 +11,34 @@ export async function GET(request: Request) {
     const unreadOnly = searchParams.get('unreadOnly') === 'true';
     const projectKey = searchParams.get('projectKey')?.toUpperCase();
 
-    const cookieHeader = request.headers.get('cookie') || '';
-    const match = cookieHeader.match(/spyrobo_session=([^;]+)/);
-    const userId = match ? match[1] : undefined;
+    const authUser = await getAuthUserFromRequest(request);
+    if (!authUser) {
+      return NextResponse.json({
+        projectKey: projectKey || 'ALL',
+        totalCount: 0,
+        unreadCount: 0,
+        notifications: [],
+      });
+    }
 
+    const userId = authUser.id;
     const client = await JiraClient.forUser(userId);
-    const currentUser = await client.getCurrentUser();
+    const isConfigured = client.isConfigured() || Boolean(authUser.jiraSite && authUser.jiraApiToken);
 
+    if (!isConfigured) {
+      return NextResponse.json({
+        projectKey: projectKey || 'ALL',
+        totalCount: 0,
+        unreadCount: 0,
+        notifications: [],
+      });
+    }
+
+    const currentUser = await client.getCurrentUser();
     let dbUser: any = null;
-    if (userId) {
-      try {
-        dbUser = await prisma.user.findUnique({ where: { id: userId }, include: { preferences: true } });
-      } catch (e) {}
-    }
-    if (!dbUser && currentUser.email) {
-      try {
-        dbUser = await prisma.user.findFirst({
-          where: {
-            OR: [
-              { email: currentUser.email.toLowerCase() },
-              { jiraEmail: currentUser.email.toLowerCase() },
-            ],
-          },
-          include: { preferences: true },
-        });
-      } catch (e) {}
-    }
-    if (!dbUser) {
-      try {
-        dbUser = await prisma.user.findFirst({
-          where: { jiraSite: { not: null } },
-          include: { preferences: true },
-        });
-      } catch (e) {}
-    }
+    try {
+      dbUser = await prisma.user.findUnique({ where: { id: userId }, include: { preferences: true } });
+    } catch (e) {}
 
     const userEmails = [
       currentUser.email?.toLowerCase(),

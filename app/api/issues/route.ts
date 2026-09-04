@@ -11,9 +11,18 @@ export async function GET(request: Request) {
     const projectKey = searchParams.get('projectKey')?.toUpperCase();
 
     const authUser = await getAuthUserFromRequest(request);
-    const userId = authUser?.id;
+    if (!authUser) {
+      return NextResponse.json({ filter, projectKey: projectKey || 'ALL', totalCount: 0, issues: [] });
+    }
 
+    const userId = authUser.id;
     const client = await JiraClient.forUser(userId);
+    const isConfigured = client.isConfigured() || Boolean(authUser.jiraSite && authUser.jiraApiToken);
+
+    if (!isConfigured) {
+      return NextResponse.json({ filter, projectKey: projectKey || 'ALL', totalCount: 0, issues: [] });
+    }
+
     const currentUser = await client.getCurrentUser();
 
     let issues: any[] = [];
@@ -21,7 +30,7 @@ export async function GET(request: Request) {
 
     try {
       const dbUser = await prisma.user.findUnique({
-        where: { jiraAccountId: currentUser.jiraAccountId },
+        where: { id: userId },
         include: { preferences: true },
       });
 

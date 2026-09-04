@@ -8,11 +8,13 @@ export class JiraClient {
   private token: string;
   private axiosInstance: AxiosInstance | null = null;
   private useMock: boolean = false;
+  private userConfigured: boolean = false;
 
-  constructor(baseUrl?: string, email?: string, token?: string) {
+  constructor(baseUrl?: string, email?: string, token?: string, isUserConfigured: boolean = false) {
     this.baseUrl = baseUrl || process.env.JIRA_BASE_URL || '';
     this.email = email || process.env.JIRA_EMAIL || '';
     this.token = token || process.env.JIRA_API_TOKEN || '';
+    this.userConfigured = isUserConfigured || Boolean(baseUrl && token);
 
     // If credentials are invalid/placeholder, automatically fallback to deterministic mock engine
     if (!this.baseUrl || !this.email || !this.token || this.token.startsWith('dev_mock')) {
@@ -35,33 +37,26 @@ export class JiraClient {
     return this.useMock;
   }
 
+  public isConfigured(): boolean {
+    return this.userConfigured;
+  }
+
   /**
-   * Creates a JiraClient instance reading GUI credentials from the authenticated user record in DB.
+   * Creates a JiraClient instance reading GUI credentials ONLY for the specified authenticated user in DB.
    */
   static async forUser(userId?: string): Promise<JiraClient> {
     try {
-      const { prisma } = await import('@/lib/db/prisma');
-      let user = null;
       if (userId) {
-        user = await prisma.user.findUnique({ where: { id: userId } });
-      }
-      if (!user) {
-        user = await prisma.user.findFirst({
-          where: {
-            jiraSite: { not: null },
-            jiraEmail: { not: null },
-            jiraApiToken: { not: null },
-          },
-          orderBy: { updatedAt: 'desc' },
-        });
-      }
-      if (user && user.jiraSite && (user.jiraEmail || user.email) && user.jiraApiToken) {
-        return new JiraClient(user.jiraSite, user.jiraEmail || user.email, user.jiraApiToken);
+        const { prisma } = await import('@/lib/db/prisma');
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (user && user.jiraSite && (user.jiraEmail || user.email) && user.jiraApiToken) {
+          return new JiraClient(user.jiraSite, user.jiraEmail || user.email, user.jiraApiToken, true);
+        }
       }
     } catch (err) {
       console.warn('[JiraClient.forUser] Could not load user credentials from DB:', err);
     }
-    return new JiraClient();
+    return new JiraClient(undefined, undefined, undefined, false);
   }
 
   /**
